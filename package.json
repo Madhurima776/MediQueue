@@ -1,0 +1,6 @@
+{
+  "name": "mediqueue",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Hospital appointment and queue management system"
+}
