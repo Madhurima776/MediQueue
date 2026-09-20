@@ -7,6 +7,12 @@ const register = async (req, res) => {
   try {
     const { name, email, password, phone } = req.body;
 
+    if (!password || password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters long"
+      });
+    }
+
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -119,6 +125,12 @@ const updateProfile = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({
+        message: "New password must be at least 8 characters long"
+      });
+    }
 
     const user = await User.findById(req.user.id);
 
