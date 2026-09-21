@@ -1,4 +1,5 @@
 const Department = require("../models/Department");
+const User = require("../models/user");
 
 // Create a department
 const createDepartment = async (req, res) => {
@@ -93,9 +94,92 @@ const deleteDepartment = async (req, res) => {
   }
 };
 
+// Get all users
+const getUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch users",
+      error: error.message,
+    });
+  }
+};
+
+// Update a user
+const updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { name, email, phone, role, profileImage, isActive } = req.body;
+
+    const user = await User.findByIdAndUpdate(
+      id,
+      {
+        name,
+        email,
+        phone,
+        role,
+        profileImage,
+        isActive,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    ).select("-password");
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "User updated successfully",
+      user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update user",
+      error: error.message,
+    });
+  }
+};
+
+// Delete a user
+const deleteUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findByIdAndDelete(id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete user",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createDepartment,
   getDepartments,
   updateDepartment,
   deleteDepartment,
+  getUsers,
+  updateUser,
+  deleteUser,
 };
+
