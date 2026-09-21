@@ -10,7 +10,7 @@ const getDoctors = async (req, res) => {
   } catch (error) {
     console.error("Get doctors error:", error);
     res.status(500).json({
-      message: "Server error",
+      message: "Server error"
     });
   }
 };
@@ -23,20 +23,20 @@ const getDoctorById = async (req, res) => {
 
     if (!doctor) {
       return res.status(404).json({
-        message: "Doctor not found",
+        message: "Doctor not found"
       });
     }
 
     res.status(200).json(doctor);
   } catch (error) {
-    console.error("Get doctor error:", error);
+    console.error("Get doctor by ID error:", error);
     res.status(500).json({
-      message: "Server error",
+      message: "Server error"
     });
   }
 };
 
 module.exports = {
   getDoctors,
-  getDoctorById,
+  getDoctorById
 };
