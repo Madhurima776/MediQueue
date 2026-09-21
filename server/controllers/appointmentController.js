@@ -7,7 +7,7 @@ const bookAppointment = async (req, res) => {
       departmentId,
       appointmentDate,
       appointmentTime,
-      reason,
+      reason
     } = req.body;
 
     if (
@@ -17,7 +17,7 @@ const bookAppointment = async (req, res) => {
       !appointmentTime
     ) {
       return res.status(400).json({
-        message: "Required appointment details are missing",
+        message: "Required appointment details are missing"
       });
     }
 
@@ -27,18 +27,18 @@ const bookAppointment = async (req, res) => {
       departmentId,
       appointmentDate,
       appointmentTime,
-      reason,
+      reason
     });
 
     res.status(201).json({
       message: "Appointment booked successfully",
-      appointment,
+      appointment
     });
   } catch (error) {
     console.error("Book appointment error:", error);
 
     res.status(500).json({
-      message: "Server error",
+      message: "Server error"
     });
   }
 };
@@ -46,23 +46,25 @@ const bookAppointment = async (req, res) => {
 const getMyAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({
-      patientId: req.user.id,
+      patientId: req.user.id
     })
       .populate("doctorId")
       .populate("departmentId")
-      .sort({ appointmentDate: 1 });
+      .sort({
+        appointmentDate: 1
+      });
 
     res.status(200).json(appointments);
   } catch (error) {
     console.error("Get appointments error:", error);
 
     res.status(500).json({
-      message: "Server error",
+      message: "Server error"
     });
   }
 };
 
 module.exports = {
   bookAppointment,
-  getMyAppointments,
+  getMyAppointments
 };
