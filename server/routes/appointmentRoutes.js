@@ -1,21 +1,23 @@
 const express = require("express");
 
-const router = express.Router();
-
 const {
   bookAppointment,
-  getMyAppointments,
-} = require(
-  "../controllers/appointmentController"
-);
+  getMyAppointments
+} = require("../controllers/appointmentController");
+
+const authMiddleware = require("../middleware/authMiddleware");
+
+const router = express.Router();
 
 router.post(
   "/",
+  authMiddleware,
   bookAppointment
 );
 
 router.get(
-  "/my/:patientId",
+  "/my",
+  authMiddleware,
   getMyAppointments
 );
 
