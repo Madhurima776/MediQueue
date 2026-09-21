@@ -9,6 +9,7 @@ const getDoctors = async (req, res) => {
     res.status(200).json(doctors);
   } catch (error) {
     console.error("Get doctors error:", error);
+
     res.status(500).json({
       message: "Server error"
     });
@@ -30,6 +31,7 @@ const getDoctorById = async (req, res) => {
     res.status(200).json(doctor);
   } catch (error) {
     console.error("Get doctor by ID error:", error);
+
     res.status(500).json({
       message: "Server error"
     });
