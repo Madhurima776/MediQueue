@@ -1,59 +1,64 @@
-function Departments() {
+import { useEffect, useState } from "react";
 
-  const departments = [
-    {
-      id: 1,
-      name: "Cardiology",
-      description: "Heart and blood vessel care"
-    },
-    {
-      id: 2,
-      name: "Neurology",
-      description: "Brain and nervous system care"
-    },
-    {
-      id: 3,
-      name: "Orthopedics",
-      description: "Bones, joints and muscles care"
-    }
-  ];
+const Departments = () => {
+  const [departments, setDepartments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:5000/api/departments"
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch departments");
+        }
+
+        const data = await response.json();
+        setDepartments(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  if (loading) {
+    return <p>Loading departments...</p>;
+  }
+
+  if (error) {
+    return <p>{error}</p>;
+  }
 
   return (
-    <div className="page departments-page">
+    <div>
+      <h2>Departments</h2>
 
-      <h1>Departments</h1>
-
-      <p className="page-description">
-        Choose a department for your healthcare needs.
-      </p>
-
-      <div className="department-grid">
-
-        {departments.map((department) => (
-
-          <div
-            className="department-card"
-            key={department.id}
-          >
-
-            <div className="department-icon">
-              🏥
-            </div>
-
-            <h2>{department.name}</h2>
+      {departments.length === 0 ? (
+        <p>No departments available.</p>
+      ) : (
+        departments.map((department) => (
+          <div key={department._id}>
+            <h3>{department.name}</h3>
 
             <p>
-              {department.description}
+              {department.description || "No description available"}
             </p>
 
+            {department.location && (
+              <p>Location: {department.location}</p>
+            )}
           </div>
-
-        ))}
-
-      </div>
-
+        ))
+      )}
     </div>
   );
-}
+};
 
 export default Departments;

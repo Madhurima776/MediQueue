@@ -7,7 +7,6 @@ import BookAppointment from "./pages/patient/BookAppointment";
 import MyAppointments from "./pages/patient/MyAppointments";
 import Departments from "./pages/patient/Departments";
 
-import "./styles/patient.css";
 
 function App() {
   return (
