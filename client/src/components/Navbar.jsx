@@ -1,42 +1,38 @@
-import { Link } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 function Navbar() {
   return (
     <aside className="sidebar">
-
       <div className="logo">
         <div className="logo-icon">⚕</div>
         <h2>MediQueue</h2>
       </div>
 
       <div className="nav-links">
-
-        <Link to="/" className="active">
+        <NavLink to="/" end>
           ▦ <span>Dashboard</span>
-        </Link>
+        </NavLink>
 
-        <Link to="/doctors">
+        <NavLink to="/doctors">
           ♙ <span>Doctors</span>
-        </Link>
+        </NavLink>
 
-        <Link to="/book">
+        <NavLink to="/book">
           ▣ <span>Book Appointment</span>
-        </Link>
+        </NavLink>
 
-        <Link to="/appointments">
+        <NavLink to="/appointments">
           ▤ <span>My Appointments</span>
-        </Link>
+        </NavLink>
 
-        <Link to="/queue">
+        <NavLink to="/queue">
           ⚡ <span>Queue Status</span>
-        </Link>
-
+        </NavLink>
       </div>
 
       <div className="profile-link">
         ♙ <span>Profile</span>
       </div>
-
     </aside>
   );
 }
