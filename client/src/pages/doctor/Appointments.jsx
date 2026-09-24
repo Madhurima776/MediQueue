@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import API from "../../services/api";
+import { DOCTOR_ID } from "../../config/doctorConfig";
 import { useNavigate } from "react-router-dom";
 import "../../styles/doctor.css";
 
@@ -10,52 +12,34 @@ function Appointments() {
   const [search, setSearch] = useState("");
   const [selectedAppointment, setSelectedAppointment] = useState(null);
 
-  const appointments = [
-    {
-      id: 1,
-      patient: "Rahul Kumar",
-      age: 28,
-      gender: "Male",
-      time: "10:00 AM",
-      type: "General Consultation",
-      status: "Completed",
-      symptoms: "Fever and headache",
-      phone: "9876543210"
-    },
-    {
-      id: 2,
-      patient: "Priya Sharma",
-      age: 35,
-      gender: "Female",
-      time: "10:30 AM",
-      type: "Follow-up",
-      status: "Waiting",
-      symptoms: "Diabetes follow-up",
-      phone: "9876501234"
-    },
-    {
-      id: 3,
-      patient: "Arjun Reddy",
-      age: 42,
-      gender: "Male",
-      time: "11:00 AM",
-      type: "General Consultation",
-      status: "Waiting",
-      symptoms: "High blood pressure",
-      phone: "9123456780"
-    },
-    {
-      id: 4,
-      patient: "Sneha Rao",
-      age: 24,
-      gender: "Female",
-      time: "11:30 AM",
-      type: "Check-up",
-      status: "Upcoming",
-      symptoms: "Regular health check-up",
-      phone: "9988776655"
-    }
-  ];
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+  fetchAppointments();
+}, []);
+
+const fetchAppointments = async () => {
+  try {
+    setLoading(true);
+
+    const response = await API.get(
+      `/queue/doctor/${DOCTOR_ID}`
+    );
+
+    setAppointments(response.data.queue);
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+
+    setError(
+      error.response?.data?.message ||
+      "Failed to load appointments"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const filteredAppointments = appointments.filter((appointment) => {
 
