@@ -1,6 +1,7 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
 
 const connectDB = require("./config/db");
 
@@ -8,6 +9,7 @@ const authRoutes = require("./routes/authRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
 const departmentRoutes = require("./routes/departmentRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
+const checkinRoutes = require("./routes/checkinRoutes");
 
 const app = express();
 
@@ -24,6 +26,10 @@ app.use("/api/doctors", doctorRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/appointments", appointmentRoutes);
 
+// M5 - Receptionist & Check-in
+app.use("/api/checkin", checkinRoutes);
+
+// Test route
 app.get("/", (req, res) => {
   res.send("MediQueue API is running...");
 });
