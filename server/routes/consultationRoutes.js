@@ -5,19 +5,23 @@ const {
   getPatientConsultations
 } = require("../controllers/consultationController");
 
-const protect = require("../middleware/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/roleMiddleware");
 
 const router = express.Router();
 
+// Doctor creates consultation
 router.post(
   "/",
-  protect,
+  authMiddleware,
+  roleMiddleware("doctor"),
   createConsultation
 );
 
+// Patient consultation history
 router.get(
   "/patient/:patientId",
-  protect,
+  authMiddleware,
   getPatientConsultations
 );
 
