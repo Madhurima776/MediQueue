@@ -2,16 +2,22 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../../styles/doctor.css";
 
-function Consultation() {
+import API from "../../services/api";
 
+function Consultation() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const appointment = location.state?.appointment;
 
+  // --------------------------------------------------
+  // FORM STATE
+  // --------------------------------------------------
 
   const [symptoms, setSymptoms] = useState(
-    appointment?.symptoms || ""
+    appointment?.symptoms ||
+      appointment?.appointment?.reason ||
+      ""
   );
 
   const [diagnosis, setDiagnosis] = useState("");
@@ -24,6 +30,11 @@ function Consultation() {
 
   const [saved, setSaved] = useState(false);
 
+  const [saving, setSaving] = useState(false);
+
+  // --------------------------------------------------
+  // MEDICINES
+  // --------------------------------------------------
 
   const [medicines, setMedicines] = useState([
     {
@@ -33,9 +44,11 @@ function Consultation() {
     }
   ]);
 
+  // --------------------------------------------------
+  // ADD MEDICINE
+  // --------------------------------------------------
 
   const addMedicine = () => {
-
     setMedicines([
       ...medicines,
       {
@@ -44,12 +57,13 @@ function Consultation() {
         duration: ""
       }
     ]);
-
   };
 
+  // --------------------------------------------------
+  // REMOVE MEDICINE
+  // --------------------------------------------------
 
   const removeMedicine = (index) => {
-
     if (medicines.length === 1) {
       return;
     }
@@ -57,23 +71,25 @@ function Consultation() {
     setMedicines(
       medicines.filter((_, i) => i !== index)
     );
-
   };
 
+  // --------------------------------------------------
+  // UPDATE MEDICINE
+  // --------------------------------------------------
 
   const updateMedicine = (index, field, value) => {
-
     const updatedMedicines = [...medicines];
 
     updatedMedicines[index][field] = value;
 
     setMedicines(updatedMedicines);
-
   };
 
+  // --------------------------------------------------
+  // SAVE CONSULTATION
+  // --------------------------------------------------
 
-  const handleSave = (e) => {
-
+  const handleSave = async (e) => {
     e.preventDefault();
 
     if (!appointment) {
@@ -81,22 +97,108 @@ function Consultation() {
       return;
     }
 
-    if (!symptoms || !diagnosis) {
-      alert("Please enter symptoms and diagnosis.");
+    if (!appointment._id) {
+      alert(
+        "Appointment ID is missing. Please open the consultation from an appointment."
+      );
       return;
     }
 
-    setSaved(true);
+    if (!symptoms.trim() || !diagnosis.trim()) {
+      alert(
+        "Please enter symptoms and diagnosis."
+      );
+      return;
+    }
 
-    setTimeout(() => {
-      navigate("/doctor/appointments");
-    }, 1500);
+    try {
+      setSaving(true);
 
+      // Convert medicine rows into prescription text
+      const prescription = medicines
+        .filter(
+          (medicine) =>
+            medicine.medicine.trim() ||
+            medicine.dosage.trim() ||
+            medicine.duration.trim()
+        )
+        .map(
+          (medicine) =>
+            `${medicine.medicine} - ${medicine.dosage} - ${medicine.duration}`
+        )
+        .join("\n");
+
+      await API.post("/consultations", {
+        appointmentId: appointment._id,
+        symptoms: symptoms.trim(),
+        diagnosis: diagnosis.trim(),
+        prescription,
+        notes: notes.trim(),
+        followUpDate: followUp || null
+      });
+
+      setSaved(true);
+
+      setTimeout(() => {
+        navigate("/doctor/appointments");
+      }, 1500);
+
+    } catch (error) {
+      console.error(
+        "Failed to save consultation:",
+        error
+      );
+
+      alert(
+        error.response?.data?.message ||
+          "Failed to save consultation"
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
+  // --------------------------------------------------
+  // PATIENT DISPLAY HELPERS
+  // --------------------------------------------------
+
+  const patientName =
+    appointment?.patient?.name ||
+    appointment?.patient ||
+    "Unknown Patient";
+
+  const patientInitial = patientName
+    .toString()
+    .charAt(0)
+    .toUpperCase();
+
+  const patientAge =
+    appointment?.age ||
+    appointment?.patient?.age ||
+    "N/A";
+
+  const patientGender =
+    appointment?.gender ||
+    appointment?.patient?.gender ||
+    "N/A";
+
+  const appointmentTime =
+    appointment?.appointment?.appointmentTime ||
+    appointment?.appointmentTime ||
+    appointment?.time ||
+    "Today";
+
+  const appointmentType =
+    appointment?.appointment?.reason ||
+    appointment?.reason ||
+    appointment?.type ||
+    "Consultation";
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
   return (
-
     <div className="doctor-page">
 
       {/* HEADER */}
@@ -119,7 +221,6 @@ function Consultation() {
 
         </div>
 
-
         <button
           className="back-button"
           onClick={() =>
@@ -131,7 +232,6 @@ function Consultation() {
 
       </div>
 
-
       {/* PATIENT INFORMATION */}
 
       {appointment ? (
@@ -139,7 +239,7 @@ function Consultation() {
         <div className="consultation-patient-card">
 
           <div className="consultation-patient-avatar">
-            {appointment.patient.charAt(0)}
+            {patientInitial}
           </div>
 
           <div className="consultation-patient-info">
@@ -149,32 +249,39 @@ function Consultation() {
             </span>
 
             <h2>
-              {appointment.patient}
+              {patientName}
             </h2>
 
             <p>
-              {appointment.age} years • {appointment.gender}
+              {patientAge} years • {patientGender}
             </p>
 
           </div>
 
-
           <div className="consultation-patient-details">
 
             <div>
-              <span>APPOINTMENT</span>
+
+              <span>
+                APPOINTMENT
+              </span>
 
               <strong>
-                🕐 {appointment.time || "Today"}
+                🕐 {appointmentTime}
               </strong>
+
             </div>
 
             <div>
-              <span>TYPE</span>
+
+              <span>
+                TYPE
+              </span>
 
               <strong>
-                🩺 {appointment.type || "Consultation"}
+                🩺 {appointmentType}
               </strong>
+
             </div>
 
           </div>
@@ -214,14 +321,12 @@ function Consultation() {
 
       )}
 
-
       {/* CONSULTATION FORM */}
 
       <form
         className="consultation-form"
         onSubmit={handleSave}
       >
-
 
         {/* SYMPTOMS */}
 
@@ -234,6 +339,7 @@ function Consultation() {
             </div>
 
             <div>
+
               <h2>
                 Symptoms
               </h2>
@@ -241,10 +347,10 @@ function Consultation() {
               <p>
                 Record the symptoms reported by the patient.
               </p>
+
             </div>
 
           </div>
-
 
           <textarea
             className="consultation-textarea"
@@ -257,7 +363,6 @@ function Consultation() {
 
         </div>
 
-
         {/* DIAGNOSIS */}
 
         <div className="consultation-section">
@@ -269,6 +374,7 @@ function Consultation() {
             </div>
 
             <div>
+
               <h2>
                 Diagnosis
               </h2>
@@ -276,10 +382,10 @@ function Consultation() {
               <p>
                 Enter the doctor's diagnosis.
               </p>
+
             </div>
 
           </div>
-
 
           <textarea
             className="consultation-textarea"
@@ -291,7 +397,6 @@ function Consultation() {
           />
 
         </div>
-
 
         {/* MEDICINES */}
 
@@ -317,79 +422,75 @@ function Consultation() {
 
           </div>
 
-
           <div className="medicine-list">
 
-            {medicines.map((medicine, index) => (
+            {medicines.map(
+              (medicine, index) => (
 
-              <div
-                className="medicine-row"
-                key={index}
-              >
+                <div
+                  className="medicine-row"
+                  key={index}
+                >
 
-                <div className="medicine-number">
-                  {index + 1}
+                  <div className="medicine-number">
+                    {index + 1}
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Medicine name"
+                    value={medicine.medicine}
+                    onChange={(e) =>
+                      updateMedicine(
+                        index,
+                        "medicine",
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Dosage e.g. 1-0-1"
+                    value={medicine.dosage}
+                    onChange={(e) =>
+                      updateMedicine(
+                        index,
+                        "dosage",
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <input
+                    type="text"
+                    placeholder="Duration e.g. 5 days"
+                    value={medicine.duration}
+                    onChange={(e) =>
+                      updateMedicine(
+                        index,
+                        "duration",
+                        e.target.value
+                      )
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="remove-medicine"
+                    onClick={() =>
+                      removeMedicine(index)
+                    }
+                  >
+                    ×
+                  </button>
+
                 </div>
 
-
-                <input
-                  type="text"
-                  placeholder="Medicine name"
-                  value={medicine.medicine}
-                  onChange={(e) =>
-                    updateMedicine(
-                      index,
-                      "medicine",
-                      e.target.value
-                    )
-                  }
-                />
-
-
-                <input
-                  type="text"
-                  placeholder="Dosage e.g. 1-0-1"
-                  value={medicine.dosage}
-                  onChange={(e) =>
-                    updateMedicine(
-                      index,
-                      "dosage",
-                      e.target.value
-                    )
-                  }
-                />
-
-
-                <input
-                  type="text"
-                  placeholder="Duration e.g. 5 days"
-                  value={medicine.duration}
-                  onChange={(e) =>
-                    updateMedicine(
-                      index,
-                      "duration",
-                      e.target.value
-                    )
-                  }
-                />
-
-
-                <button
-                  type="button"
-                  className="remove-medicine"
-                  onClick={() =>
-                    removeMedicine(index)
-                  }
-                >
-                  ×
-                </button>
-
-              </div>
-
-            ))}
+              )
+            )}
 
           </div>
-
 
           <button
             type="button"
@@ -400,7 +501,6 @@ function Consultation() {
           </button>
 
         </div>
-
 
         {/* TESTS */}
 
@@ -426,7 +526,6 @@ function Consultation() {
 
           </div>
 
-
           <textarea
             className="consultation-textarea"
             placeholder="Enter recommended tests..."
@@ -437,7 +536,6 @@ function Consultation() {
           />
 
         </div>
-
 
         {/* NOTES */}
 
@@ -463,7 +561,6 @@ function Consultation() {
 
           </div>
 
-
           <textarea
             className="consultation-textarea"
             placeholder="Enter additional notes..."
@@ -474,7 +571,6 @@ function Consultation() {
           />
 
         </div>
-
 
         {/* FOLLOW UP */}
 
@@ -500,7 +596,6 @@ function Consultation() {
 
           </div>
 
-
           <div className="date-input-wrapper">
 
             <span>
@@ -519,7 +614,6 @@ function Consultation() {
 
         </div>
 
-
         {/* ACTIONS */}
 
         <div className="consultation-actions">
@@ -530,20 +624,24 @@ function Consultation() {
             onClick={() =>
               navigate("/doctor/appointments")
             }
+            disabled={saving}
           >
             Cancel
           </button>
 
-
           <button
             type="submit"
             className="save-consultation"
+            disabled={saving}
           >
-            ✓ Save Consultation
+            {saving
+              ? "Saving..."
+              : "✓ Save Consultation"}
           </button>
 
         </div>
 
+        {/* SUCCESS MESSAGE */}
 
         {saved && (
 
@@ -554,6 +652,7 @@ function Consultation() {
             </div>
 
             <div>
+
               <strong>
                 Consultation Saved Successfully
               </strong>
@@ -561,6 +660,7 @@ function Consultation() {
               <p>
                 Patient consultation has been recorded.
               </p>
+
             </div>
 
           </div>
@@ -570,7 +670,6 @@ function Consultation() {
       </form>
 
     </div>
-
   );
 }
 
