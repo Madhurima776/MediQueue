@@ -2,52 +2,59 @@ const mongoose = require("mongoose");
 
 const doctorSchema = new mongoose.Schema(
   {
-    user: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
+    },
+
+    departmentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
     },
 
     specialization: {
       type: String,
       required: true,
-      trim: true
-    },
-
-    department: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Department",
-      required: true
     },
 
     qualification: {
       type: String,
-      trim: true
     },
 
     experience: {
       type: Number,
-      default: 0
     },
 
     consultationFee: {
       type: Number,
-      default: 0
     },
 
-    available: {
+    availableDays: {
+      type: [String],
+      default: [],
+    },
+
+    startTime: {
+      type: String,
+    },
+
+    endTime: {
+      type: String,
+    },
+
+    isAvailable: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-const Doctor = mongoose.model(
+module.exports = mongoose.model(
   "Doctor",
   doctorSchema
 );
-
-module.exports = Doctor;
