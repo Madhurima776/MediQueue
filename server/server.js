@@ -38,7 +38,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Middleware — keep these before routes
+// Middleware
 app.use(cors());
 app.use(express.json());
 
