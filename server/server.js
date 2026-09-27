@@ -4,6 +4,7 @@ const { Server } = require("socket.io");
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+
 const authRoutes = require("./routes/authRoutes");
 const connectDB = require("./config/db");
 const departmentRoutes = require("./routes/departmentRoutes");
@@ -16,7 +17,6 @@ dotenv.config();
 
 connectDB();
 
-
 const app = express();
 const httpServer = http.createServer(app);
 
@@ -25,6 +25,7 @@ const io = new Server(httpServer, {
     origin: "*"
   }
 });
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
@@ -36,17 +37,18 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
   });
 });
-app.use("/api/auth", authRoutes);
+
+// Middleware — keep these before routes
 app.use(cors());
 app.use(express.json());
+
+// Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/departments", departmentRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/queue", queueRoutes);
-app.use(
-  "/api/consultations",
-  consultationRoutes
-);
+app.use("/api/consultations", consultationRoutes);
 
 app.get("/", (req, res) => {
   res.json({
