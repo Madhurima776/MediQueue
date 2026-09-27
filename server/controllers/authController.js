@@ -1,19 +1,18 @@
-const User = require("../models/User");
+const User = require("../models/user");
 const bcrypt = require("bcryptjs");
-const generateToken = require("../utills/generateToken");
-// REGISTER
-const registerUser = async (req, res) => {
-  try {
-    const { name, email, password, phone, role } = req.body;
+const generateToken = require("../utils/generateToken");
 
-    // Check required fields
-    if (!name || !email || !password) {
+// Register
+const register = async (req, res) => {
+  try {
+    const { name, email, password, phone } = req.body;
+
+    if (!password || password.length < 8) {
       return res.status(400).json({
-        message: "Name, email and password are required"
+        message: "Password must be at least 8 characters long"
       });
     }
 
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
 
     if (existingUser) {
@@ -22,53 +21,32 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await User.create({
+    const user = new User({
       name,
       email,
       password: hashedPassword,
-      phone,
-      role: role || "patient"
+      phone
     });
+
+    await user.save();
 
     res.status(201).json({
-      message: "User registered successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone
-      }
+      message: "User registered successfully"
     });
-
   } catch (error) {
-    console.error(error);
-
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
 
-
-// LOGIN
-const loginUser = async (req, res) => {
+// Login
+const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Check required fields
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Email and password are required"
-      });
-    }
-
-    // Find user
     const user = await User.findOne({ email });
 
     if (!user) {
@@ -77,43 +55,116 @@ const loginUser = async (req, res) => {
       });
     }
 
-    // Compare password
-    const isPasswordCorrect = await bcrypt.compare(
-      password,
-      user.password
-    );
+    const isMatch = await bcrypt.compare(password, user.password);
 
-    if (!isPasswordCorrect) {
+    if (!isMatch) {
       return res.status(401).json({
         message: "Invalid email or password"
       });
     }
 
     const token = generateToken(user._id, user.role);
-    res.status(200).json({
+
+    res.json({
       message: "Login successful",
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        phone: user.phone
-      }
+      token: token
     });
-
   } catch (error) {
-    console.error(error);
-
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
+// Get profile
+const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select("-password");
 
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
 
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+// Update profile
+const updateProfile = async (req, res) => {
+  try {
+    const { name, phone, profileImage } = req.body;
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    user.name = name || user.name;
+    user.phone = phone || user.phone;
+    user.profileImage = profileImage || user.profileImage;
+
+    await user.save();
+
+    res.json({
+      message: "Profile updated successfully"
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
+// Change password
+const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({
+        message: "New password must be at least 8 characters long"
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Old password is incorrect"
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+
+    await user.save();
+
+    res.json({
+      message: "Password changed successfully"
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+};
 module.exports = {
-  registerUser,
-  loginUser
+  register,
+  login,
+  getProfile,
+  updateProfile,
+  changePassword
 };
