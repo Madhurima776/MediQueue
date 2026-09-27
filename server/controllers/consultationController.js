@@ -2,7 +2,8 @@ const Consultation = require("../models/Consultation");
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
 
-// CREATE CONSULTATION - Doctor only
+// CREATE CONSULTATION
+// Doctor-only access is handled by roleMiddleware in consultationRoutes.js
 const createConsultation = async (req, res) => {
   try {
     const {
@@ -14,6 +15,7 @@ const createConsultation = async (req, res) => {
       followUpDate
     } = req.body;
 
+    // Validate appointment ID
     if (!appointmentId) {
       return res.status(400).json({
         message: "Appointment ID is required"
@@ -40,7 +42,7 @@ const createConsultation = async (req, res) => {
       });
     }
 
-    // Check whether appointment belongs to this doctor
+    // Make sure the appointment belongs to the logged-in doctor
     if (
       appointment.doctorId.toString() !==
       doctor._id.toString()
@@ -50,7 +52,7 @@ const createConsultation = async (req, res) => {
       });
     }
 
-    // Check whether consultation already exists
+    // Prevent duplicate consultation
     const existingConsultation = await Consultation.findOne({
       appointment: appointment._id
     });
@@ -96,7 +98,8 @@ const getPatientConsultations = async (req, res) => {
   try {
     const { patientId } = req.params;
 
-    // Patient can view only their own consultation history
+    // PATIENT:
+    // Can view only their own consultation history
     if (req.user.role === "patient") {
       if (req.user.userId.toString() !== patientId.toString()) {
         return res.status(403).json({
@@ -120,7 +123,8 @@ const getPatientConsultations = async (req, res) => {
       return res.status(200).json(consultations);
     }
 
-    // Doctor can view consultations only for their own patients
+    // DOCTOR:
+    // Can view only consultations belonging to that doctor
     if (req.user.role === "doctor") {
       const doctor = await Doctor.findOne({
         userId: req.user.userId
@@ -149,7 +153,8 @@ const getPatientConsultations = async (req, res) => {
       return res.status(200).json(consultations);
     }
 
-    // Admin can view patient consultation history
+    // ADMIN:
+    // Can view consultation history
     if (req.user.role === "admin") {
       const consultations = await Consultation.find({
         patient: patientId
@@ -167,6 +172,7 @@ const getPatientConsultations = async (req, res) => {
       return res.status(200).json(consultations);
     }
 
+    // Any other role
     return res.status(403).json({
       message: "Access denied"
     });
