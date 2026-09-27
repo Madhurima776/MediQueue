@@ -2,76 +2,63 @@ const mongoose = require("mongoose");
 
 const appointmentSchema = new mongoose.Schema(
   {
-    patient: {
+    patientId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true
+      required: true,
     },
 
-    doctor: {
+    doctorId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Doctor",
-      required: true
+      required: true,
     },
 
-    department: {
+    departmentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
-      required: true
+      required: true,
     },
 
     appointmentDate: {
       type: Date,
-      required: true
+      required: true,
     },
 
     appointmentTime: {
       type: String,
-      required: true
+      required: true,
     },
 
     reason: {
       type: String,
-      trim: true
     },
 
     status: {
       type: String,
       enum: [
-        "BOOKED",
-        "CHECKED_IN",
-        "WAITING",
-        "IN_CONSULTATION",
-        "COMPLETED",
-        "CANCELLED",
-        "NO_SHOW",
-        "SKIPPED"
+        "booked",
+        "confirmed",
+        "checked-in",
+        "in-queue",
+        "in-consultation",
+        "completed",
+        "cancelled",
+        "no-show",
       ],
-      default: "BOOKED"
+      default: "booked",
     },
 
-    qrToken: {
+    notes: {
       type: String,
-      unique: true,
-      required: true
     },
-
-    checkedInAt: {
-      type: Date
-    },
-
-    cancelledAt: {
-      type: Date
-    }
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-const Appointment = mongoose.model(
+module.exports = mongoose.model(
   "Appointment",
   appointmentSchema
 );
-
-module.exports = Appointment;
