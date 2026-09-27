@@ -3,23 +3,11 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../styles/doctor.css";
 
 import API from "../../services/api";
-const [doctorId, setDoctorId] = useState(null);
-const getUserIdFromToken = () => {
-  const token = localStorage.getItem("token");
-
-  if (!token) return null;
-
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.userId;
-  } catch (error) {
-    console.error("Invalid token:", error);
-    return null;
-  }
-};
 
 function Dashboard() {
   const navigate = useNavigate();
+
+  const [doctorId, setDoctorId] = useState(null);
 
   const [search, setSearch] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -30,19 +18,47 @@ function Dashboard() {
   const [error, setError] = useState("");
 
   // --------------------------------------------------
-  // LOAD DOCTOR QUEUE FROM BACKEND
+  // GET LOGGED-IN USER ID FROM JWT
+  // --------------------------------------------------
+
+  const getUserIdFromToken = () => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload.userId;
+    } catch (error) {
+      console.error("Invalid token:", error);
+      return null;
+    }
+  };
+
+  // --------------------------------------------------
+  // LOAD DOCTOR QUEUE
   // --------------------------------------------------
 
   const loadAppointments = async (id) => {
+    if (!id) {
+      setError("Doctor ID is missing");
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError("");
 
       const response = await API.get(`/queue/doctor/${id}`);
 
-      setAppointments(response.data.queue || []);
+      setAppointments(response.data?.queue || []);
     } catch (error) {
       console.error("Failed to load doctor queue:", error);
+
+      setAppointments([]);
 
       setError(
         error.response?.data?.message ||
@@ -52,16 +68,34 @@ function Dashboard() {
       setLoading(false);
     }
   };
+
+  // --------------------------------------------------
+  // LOAD LOGGED-IN DOCTOR
+  // --------------------------------------------------
+
   const loadDoctor = async () => {
     try {
-      const response = await API.get("/doctors");
+      setLoading(true);
+      setError("");
 
       const userId = getUserIdFromToken();
 
-      const doctor = response.data.find(
+      if (!userId) {
+        setError("Please login again.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await API.get("/doctors");
+
+      const doctors = Array.isArray(response.data)
+        ? response.data
+        : [];
+
+      const doctor = doctors.find(
         (item) =>
-          item.userId?._id?.toString() === userId?.toString() ||
-          item.userId?.toString() === userId?.toString()
+          item.userId?._id?.toString() === userId.toString() ||
+          item.userId?.toString() === userId.toString()
       );
 
       if (!doctor) {
@@ -77,26 +111,45 @@ function Dashboard() {
           error.message ||
           "Failed to load doctor profile"
       );
+
+      setLoading(false);
     }
   };
+
+  // --------------------------------------------------
+  // INITIAL LOAD
+  // --------------------------------------------------
+
   useEffect(() => {
     loadDoctor();
   }, []);
+
+  // --------------------------------------------------
+  // LOAD QUEUE AFTER DOCTOR ID IS FOUND
+  // --------------------------------------------------
 
   useEffect(() => {
     if (doctorId) {
       loadAppointments(doctorId);
     }
   }, [doctorId]);
+
   // --------------------------------------------------
   // SEARCH
   // --------------------------------------------------
 
   const filteredAppointments = appointments.filter(
-    (appointment) =>
-      appointment.patient?.name
-        ?.toLowerCase()
-        .includes(search.toLowerCase())
+    (appointment) => {
+      const patientName =
+        appointment.patient?.name ||
+        appointment.patient ||
+        "";
+
+      return patientName
+        .toString()
+        .toLowerCase()
+        .includes(search.toLowerCase());
+    }
   );
 
   // --------------------------------------------------
@@ -137,7 +190,9 @@ function Dashboard() {
   // --------------------------------------------------
 
   const startConsultation = (appointment) => {
-    if (!appointment) return;
+    if (!appointment) {
+      return;
+    }
 
     navigate("/doctor/consultation", {
       state: {
@@ -185,6 +240,7 @@ function Dashboard() {
             </span>
 
             <div>
+
               <small>Today</small>
 
               <strong>
@@ -197,6 +253,7 @@ function Dashboard() {
                   }
                 )}
               </strong>
+
             </div>
 
           </div>
@@ -208,7 +265,6 @@ function Dashboard() {
         </div>
 
       </div>
-
 
       {/* ==================================================
           STATISTICS
@@ -240,7 +296,6 @@ function Dashboard() {
 
         </div>
 
-
         {/* PATIENTS */}
 
         <div className="doctor-stat-card green-card">
@@ -265,7 +320,6 @@ function Dashboard() {
 
         </div>
 
-
         {/* COMPLETED */}
 
         <div className="doctor-stat-card purple-card">
@@ -289,7 +343,6 @@ function Dashboard() {
           </div>
 
         </div>
-
 
         {/* WAITING */}
 
@@ -317,13 +370,11 @@ function Dashboard() {
 
       </div>
 
-
       {/* ==================================================
           MAIN CONTENT
       ================================================== */}
 
       <div className="dashboard-layout">
-
 
         {/* ==================================================
             LEFT COLUMN
@@ -354,7 +405,6 @@ function Dashboard() {
 
           </div>
 
-
           {/* SEARCH */}
 
           <div className="doctor-search">
@@ -373,7 +423,6 @@ function Dashboard() {
             />
 
           </div>
-
 
           {/* APPOINTMENT LIST */}
 
@@ -400,7 +449,6 @@ function Dashboard() {
               </div>
             )}
 
-
             {/* ERROR */}
 
             {!loading && error && (
@@ -420,14 +468,16 @@ function Dashboard() {
 
                 <button
                   className="primary-small-btn"
-                  onClick={loadAppointments}
+                  onClick={() =>
+                    doctorId &&
+                    loadAppointments(doctorId)
+                  }
                 >
                   Retry
                 </button>
 
               </div>
             )}
-
 
             {/* APPOINTMENTS */}
 
@@ -441,16 +491,20 @@ function Dashboard() {
                     key={appointment._id}
                   >
 
-
                     {/* PATIENT */}
 
                     <div className="dashboard-patient">
 
                       <div className="patient-circle">
 
-                        {appointment.patient?.name
-                          ?.charAt(0)
-                          ?.toUpperCase()}
+                        {(
+                          appointment.patient?.name ||
+                          appointment.patient ||
+                          "P"
+                        )
+                          .toString()
+                          .charAt(0)
+                          .toUpperCase()}
 
                       </div>
 
@@ -458,6 +512,7 @@ function Dashboard() {
 
                         <h3>
                           {appointment.patient?.name ||
+                            appointment.patient ||
                             "Unknown Patient"}
                         </h3>
 
@@ -471,7 +526,6 @@ function Dashboard() {
 
                     </div>
 
-
                     {/* TIME */}
 
                     <div className="appointment-time">
@@ -480,6 +534,7 @@ function Dashboard() {
 
                         {appointment.appointment
                           ?.appointmentTime ||
+                          appointment.appointmentTime ||
                           "—"}
 
                       </strong>
@@ -488,12 +543,12 @@ function Dashboard() {
 
                         {appointment.appointment
                           ?.reason ||
+                          appointment.reason ||
                           "Consultation"}
 
                       </span>
 
                     </div>
-
 
                     {/* STATUS */}
 
@@ -503,12 +558,9 @@ function Dashboard() {
                         ""
                       }`}
                     >
-
                       {appointment.status ||
                         "WAITING"}
-
                     </span>
-
 
                     {/* ACTIONS */}
 
@@ -524,7 +576,6 @@ function Dashboard() {
                       >
                         View
                       </button>
-
 
                       {appointment.status !==
                         "COMPLETED" && (
@@ -548,7 +599,6 @@ function Dashboard() {
 
                 )
               )}
-
 
             {/* NO RESULTS */}
 
@@ -580,13 +630,11 @@ function Dashboard() {
 
         </div>
 
-
         {/* ==================================================
             RIGHT COLUMN
         ================================================== */}
 
         <div className="dashboard-side">
-
 
           {/* ==================================================
               NEXT PATIENT
@@ -603,10 +651,9 @@ function Dashboard() {
                 </span>
 
                 <h2>
-
                   {nextPatient?.patient?.name ||
+                    nextPatient?.patient ||
                     "No waiting patient"}
-
                 </h2>
 
               </div>
@@ -615,25 +662,27 @@ function Dashboard() {
 
             </div>
 
-
             <div className="next-patient-info">
 
               <div className="large-patient-circle">
 
-                {nextPatient?.patient?.name
-                  ?.charAt(0)
-                  ?.toUpperCase() || "—"}
+                {(
+                  nextPatient?.patient?.name ||
+                  nextPatient?.patient ||
+                  "—"
+                )
+                  .toString()
+                  .charAt(0)
+                  .toUpperCase()}
 
               </div>
 
               <div>
 
                 <p>
-
                   Token #
                   {nextPatient?.tokenNumber ||
                     "—"}
-
                 </p>
 
                 <strong>
@@ -642,6 +691,7 @@ function Dashboard() {
 
                   {nextPatient?.appointment
                     ?.appointmentTime ||
+                    nextPatient?.appointmentTime ||
                     "—"}
 
                 </strong>
@@ -650,16 +700,15 @@ function Dashboard() {
 
             </div>
 
-
             <div className="consultation-type">
 
               🩺{" "}
 
               {nextPatient?.appointment?.reason ||
+                nextPatient?.reason ||
                 "Consultation"}
 
             </div>
-
 
             <button
               className="start-consultation-btn"
@@ -680,7 +729,6 @@ function Dashboard() {
 
           </div>
 
-
           {/* ==================================================
               QUICK ACTIONS
           ================================================== */}
@@ -698,7 +746,6 @@ function Dashboard() {
               </span>
 
             </div>
-
 
             <Link
               to="/doctor/appointments"
@@ -727,7 +774,6 @@ function Dashboard() {
 
             </Link>
 
-
             <Link
               to="/doctor/patients"
               className="quick-action"
@@ -754,7 +800,6 @@ function Dashboard() {
               </span>
 
             </Link>
-
 
             <Link
               to="/doctor/consultation"
@@ -785,7 +830,6 @@ function Dashboard() {
 
           </div>
 
-
           {/* ==================================================
               DAILY PROGRESS
           ================================================== */}
@@ -801,22 +845,17 @@ function Dashboard() {
                 </span>
 
                 <h2>
-
                   {completedPatients} of{" "}
                   {totalPatients} completed
-
                 </h2>
 
               </div>
 
               <strong>
-
                 {progressPercentage}%
-
               </strong>
 
             </div>
-
 
             <div className="progress-background">
 
@@ -828,7 +867,6 @@ function Dashboard() {
               ></div>
 
             </div>
-
 
             <p>
 
@@ -843,7 +881,6 @@ function Dashboard() {
         </div>
 
       </div>
-
 
       {/* ==================================================
           PATIENT POPUP
@@ -865,7 +902,6 @@ function Dashboard() {
             }
           >
 
-
             {/* CLOSE */}
 
             <button
@@ -877,26 +913,29 @@ function Dashboard() {
               ×
             </button>
 
-
             {/* PROFILE */}
 
             <div className="popup-profile">
 
               <div className="popup-avatar">
 
-                {selectedPatient.patient?.name
-                  ?.charAt(0)
-                  ?.toUpperCase()}
+                {(
+                  selectedPatient.patient?.name ||
+                  selectedPatient.patient ||
+                  "P"
+                )
+                  .toString()
+                  .charAt(0)
+                  .toUpperCase()}
 
               </div>
 
               <div>
 
                 <h2>
-
                   {selectedPatient.patient?.name ||
+                    selectedPatient.patient ||
                     "Unknown Patient"}
-
                 </h2>
 
                 <p>
@@ -912,7 +951,6 @@ function Dashboard() {
 
             </div>
 
-
             {/* DETAILS */}
 
             <div className="popup-grid">
@@ -924,14 +962,11 @@ function Dashboard() {
                 </span>
 
                 <strong>
-
                   #{selectedPatient.tokenNumber ||
                     "—"}
-
                 </strong>
 
               </div>
-
 
               <div>
 
@@ -940,14 +975,11 @@ function Dashboard() {
                 </span>
 
                 <strong>
-
                   {selectedPatient.status ||
                     "—"}
-
                 </strong>
 
               </div>
-
 
               <div>
 
@@ -959,12 +991,12 @@ function Dashboard() {
 
                   {selectedPatient.appointment
                     ?.appointmentTime ||
+                    selectedPatient.appointmentTime ||
                     "—"}
 
                 </strong>
 
               </div>
-
 
               <div>
 
@@ -983,7 +1015,6 @@ function Dashboard() {
 
             </div>
 
-
             {/* COMPLAINT */}
 
             <div className="complaint-card">
@@ -996,12 +1027,12 @@ function Dashboard() {
 
                 {selectedPatient.appointment
                   ?.reason ||
+                  selectedPatient.reason ||
                   "No complaint provided"}
 
               </p>
 
             </div>
-
 
             {/* BUTTONS */}
 
@@ -1015,7 +1046,6 @@ function Dashboard() {
               >
                 Close
               </button>
-
 
               {selectedPatient.status !==
                 "COMPLETED" && (
