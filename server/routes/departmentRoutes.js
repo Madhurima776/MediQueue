@@ -1,13 +1,10 @@
 const express = require("express");
 
-const {
-  createDepartment,
-  getDepartments
-} = require("../controllers/departmentController");
-
 const router = express.Router();
 
-router.post("/", createDepartment);
+const {
+  getDepartments,
+} = require("../controllers/departmentController");
 
 router.get("/", getDepartments);
 
