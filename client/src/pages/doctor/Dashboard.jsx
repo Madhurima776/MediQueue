@@ -3,7 +3,20 @@ import { Link, useNavigate } from "react-router-dom";
 import "../../styles/doctor.css";
 
 import API from "../../services/api";
-import { DOCTOR_ID } from "../../config/doctorConfig";
+const [doctorId, setDoctorId] = useState(null);
+const getUserIdFromToken = () => {
+  const token = localStorage.getItem("token");
+
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.userId;
+  } catch (error) {
+    console.error("Invalid token:", error);
+    return null;
+  }
+};
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -20,21 +33,16 @@ function Dashboard() {
   // LOAD DOCTOR QUEUE FROM BACKEND
   // --------------------------------------------------
 
-  const loadAppointments = async () => {
+  const loadAppointments = async (id) => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await API.get(
-        `/queue/doctor/${DOCTOR_ID}`
-      );
+      const response = await API.get(`/queue/doctor/${id}`);
 
       setAppointments(response.data.queue || []);
     } catch (error) {
-      console.error(
-        "Failed to load doctor queue:",
-        error
-      );
+      console.error("Failed to load doctor queue:", error);
 
       setError(
         error.response?.data?.message ||
@@ -44,11 +52,42 @@ function Dashboard() {
       setLoading(false);
     }
   };
+  const loadDoctor = async () => {
+    try {
+      const response = await API.get("/doctors");
 
+      const userId = getUserIdFromToken();
+
+      const doctor = response.data.find(
+        (item) =>
+          item.userId?._id?.toString() === userId?.toString() ||
+          item.userId?.toString() === userId?.toString()
+      );
+
+      if (!doctor) {
+        throw new Error("Doctor profile not found");
+      }
+
+      setDoctorId(doctor._id);
+    } catch (error) {
+      console.error("Failed to load doctor:", error);
+
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to load doctor profile"
+      );
+    }
+  };
   useEffect(() => {
-    loadAppointments();
+    loadDoctor();
   }, []);
 
+  useEffect(() => {
+    if (doctorId) {
+      loadAppointments(doctorId);
+    }
+  }, [doctorId]);
   // --------------------------------------------------
   // SEARCH
   // --------------------------------------------------
