@@ -2,7 +2,7 @@ const Consultation = require("../models/Consultation");
 const Appointment = require("../models/Appointment");
 const Doctor = require("../models/Doctor");
 
-// Create consultation - Doctor only
+// CREATE CONSULTATION - Doctor only
 const createConsultation = async (req, res) => {
   try {
     const {
@@ -29,7 +29,7 @@ const createConsultation = async (req, res) => {
       });
     }
 
-    // Find the doctor profile belonging to the logged-in user
+    // Find doctor profile of logged-in doctor
     const doctor = await Doctor.findOne({
       userId: req.user.userId
     });
@@ -40,8 +40,11 @@ const createConsultation = async (req, res) => {
       });
     }
 
-    // Make sure this appointment belongs to the logged-in doctor
-    if (appointment.doctorId.toString() !== doctor._id.toString()) {
+    // Check whether appointment belongs to this doctor
+    if (
+      appointment.doctorId.toString() !==
+      doctor._id.toString()
+    ) {
       return res.status(403).json({
         message: "You are not authorized to consult this appointment"
       });
@@ -88,40 +91,85 @@ const createConsultation = async (req, res) => {
 };
 
 
-// Get patient consultation history
+// GET PATIENT CONSULTATION HISTORY
 const getPatientConsultations = async (req, res) => {
   try {
     const { patientId } = req.params;
 
-    // Patient can access their own history.
-    // Doctor/Admin can access patient consultation history.
-    const isOwnPatientProfile =
-      req.user.userId.toString() === patientId.toString();
+    // Patient can view only their own consultation history
+    if (req.user.role === "patient") {
+      if (req.user.userId.toString() !== patientId.toString()) {
+        return res.status(403).json({
+          message: "Access denied"
+        });
+      }
 
-    const isDoctorOrAdmin =
-      req.user.role === "doctor" ||
-      req.user.role === "admin";
+      const consultations = await Consultation.find({
+        patient: patientId
+      })
+        .populate({
+          path: "doctor",
+          populate: {
+            path: "userId",
+            select: "name email"
+          }
+        })
+        .populate("appointment")
+        .sort({ createdAt: -1 });
 
-    if (!isOwnPatientProfile && !isDoctorOrAdmin) {
-      return res.status(403).json({
-        message: "Access denied"
-      });
+      return res.status(200).json(consultations);
     }
 
-    const consultations = await Consultation.find({
-      patient: patientId
-    })
-      .populate({
-        path: "doctor",
-        populate: {
-          path: "userId",
-          select: "name email"
-        }
-      })
-      .populate("appointment")
-      .sort({ createdAt: -1 });
+    // Doctor can view consultations only for their own patients
+    if (req.user.role === "doctor") {
+      const doctor = await Doctor.findOne({
+        userId: req.user.userId
+      });
 
-    res.status(200).json(consultations);
+      if (!doctor) {
+        return res.status(404).json({
+          message: "Doctor profile not found"
+        });
+      }
+
+      const consultations = await Consultation.find({
+        patient: patientId,
+        doctor: doctor._id
+      })
+        .populate({
+          path: "doctor",
+          populate: {
+            path: "userId",
+            select: "name email"
+          }
+        })
+        .populate("appointment")
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json(consultations);
+    }
+
+    // Admin can view patient consultation history
+    if (req.user.role === "admin") {
+      const consultations = await Consultation.find({
+        patient: patientId
+      })
+        .populate({
+          path: "doctor",
+          populate: {
+            path: "userId",
+            select: "name email"
+          }
+        })
+        .populate("appointment")
+        .sort({ createdAt: -1 });
+
+      return res.status(200).json(consultations);
+    }
+
+    return res.status(403).json({
+      message: "Access denied"
+    });
   } catch (error) {
     console.error("Get patient consultations error:", error);
 
