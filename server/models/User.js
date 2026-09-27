@@ -13,23 +13,34 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
       lowercase: true,
-      trim: true
+      trim: true,
+      match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     },
 
     password: {
       type: String,
-      required: true
-    },
-
-    role: {
-      type: String,
-      enum: ["patient", "receptionist", "doctor", "admin"],
-      default: "patient"
+      required: true,
     },
 
     phone: {
       type: String,
       trim: true
+    },
+
+    role: {
+      type: String,
+      enum: ["patient", "doctor", "receptionist", "admin"],
+      default: "patient"
+    },
+
+    profileImage: {
+      type: String,
+      default: ""
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true
     }
   },
   {
@@ -37,6 +48,4 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-const User = mongoose.model("User", userSchema);
-
-module.exports = User;
+module.exports = mongoose.model("User", userSchema);
