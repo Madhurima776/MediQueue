@@ -1,23 +1,20 @@
 const express = require("express");
-
 const {
-  registerUser,
-  loginUser
+  register,
+  login,
+  getProfile,
+  updateProfile,
+  changePassword
 } = require("../controllers/authController");
 
-const protect = require("../middleware/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/register", registerUser);
-
-router.post("/login", loginUser);
-
-router.get("/profile", protect, (req, res) => {
-  res.json({
-    message: "You accessed a protected route!",
-    user: req.user
-  });
-});
+router.post("/register", register);
+router.post("/login", login);
+router.get("/profile", authMiddleware, getProfile);
+router.put("/profile", authMiddleware, updateProfile);
+router.put("/change-password", authMiddleware, changePassword);
 
 module.exports = router;
