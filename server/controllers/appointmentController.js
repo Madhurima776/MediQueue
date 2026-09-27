@@ -1,6 +1,5 @@
 const Appointment = require("../models/Appointment");
 
-// BOOK APPOINTMENT
 const bookAppointment = async (req, res) => {
   try {
     const {
@@ -44,8 +43,6 @@ const bookAppointment = async (req, res) => {
   }
 };
 
-
-// GET MY APPOINTMENTS
 const getMyAppointments = async (req, res) => {
   try {
     const appointments = await Appointment.find({
@@ -53,7 +50,9 @@ const getMyAppointments = async (req, res) => {
     })
       .populate("doctorId")
       .populate("departmentId")
-      .sort({ appointmentDate: 1 });
+      .sort({
+        appointmentDate: 1
+      });
 
     res.status(200).json(appointments);
   } catch (error) {
@@ -64,7 +63,6 @@ const getMyAppointments = async (req, res) => {
     });
   }
 };
-
 
 module.exports = {
   bookAppointment,
