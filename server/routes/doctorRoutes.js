@@ -1,14 +1,13 @@
 const express = require("express");
 
-const {
-  createDoctor,
-  getDoctors,
-  getDoctorById
-} = require("../controllers/doctorController");
-
 const router = express.Router();
 
-router.post("/", createDoctor);
+const {
+  getDoctors,
+  getDoctorById,
+} = require(
+  "../controllers/doctorController"
+);
 
 router.get("/", getDoctors);
 
