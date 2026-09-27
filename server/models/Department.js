@@ -5,23 +5,27 @@ const departmentSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
-      unique: true,
-      trim: true
     },
 
     description: {
       type: String,
-      trim: true
-    }
+    },
+
+    location: {
+      type: String,
+    },
+
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-const Department = mongoose.model(
+module.exports = mongoose.model(
   "Department",
   departmentSchema
 );
-
-module.exports = Department;
