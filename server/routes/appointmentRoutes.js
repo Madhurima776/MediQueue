@@ -1,32 +1,24 @@
 const express = require("express");
 
 const {
-  createAppointment,
-  getMyAppointments,
-  getAppointmentById,
-  cancelAppointment,
-  checkInAppointment
+  bookAppointment,
+  getMyAppointments
 } = require("../controllers/appointmentController");
 
-const protect = require("../middleware/authMiddleware");
+const authMiddleware = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-router.post("/check-in", protect, checkInAppointment);
-// Book appointment
-router.post("/", protect, createAppointment);
+router.post(
+  "/",
+  authMiddleware,
+  bookAppointment
+);
 
-
-// Get logged-in patient's appointments
-router.get("/my", protect, getMyAppointments);
-
-
-// Get single appointment
-router.get("/:id", protect, getAppointmentById);
-
-
-// Cancel appointment
-router.put("/:id/cancel", protect, cancelAppointment);
-
+router.get(
+  "/my",
+  authMiddleware,
+  getMyAppointments
+);
 
 module.exports = router;
