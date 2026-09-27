@@ -1,73 +1,229 @@
 import React, { useEffect, useState } from "react";
-import API from "../../services/api";
-import { DOCTOR_ID } from "../../config/doctorConfig";
 import { useNavigate } from "react-router-dom";
 import "../../styles/doctor.css";
 
-function Appointments() {
+import API from "../../services/api";
 
-  const navigate = useNavigate();
+const getUserIdFromToken = () => {
+  const token = localStorage.getItem("token");
 
-  const [filter, setFilter] = useState("All");
-  const [search, setSearch] = useState("");
-  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  if (!token) return null;
 
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-  fetchAppointments();
-}, []);
-
-const fetchAppointments = async () => {
   try {
-    setLoading(true);
-
-    const response = await API.get(
-      `/queue/doctor/${DOCTOR_ID}`
-    );
-
-    setAppointments(response.data.queue);
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.userId;
   } catch (error) {
-    console.error("Error fetching appointments:", error);
-
-    setError(
-      error.response?.data?.message ||
-      "Failed to load appointments"
-    );
-  } finally {
-    setLoading(false);
+    console.error("Invalid token:", error);
+    return null;
   }
 };
 
-  const filteredAppointments = appointments.filter((appointment) => {
+function Appointments() {
+  const navigate = useNavigate();
 
-    const matchesFilter =
-      filter === "All" || appointment.status === filter;
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("All");
 
-    const matchesSearch =
-      appointment.patient
+  const [appointments, setAppointments] = useState([]);
+  const [doctorId, setDoctorId] = useState(null);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // --------------------------------------------------
+  // LOAD LOGGED-IN DOCTOR
+  // --------------------------------------------------
+
+  const loadDoctor = async () => {
+    try {
+      const response = await API.get("/doctors");
+
+      const userId = getUserIdFromToken();
+
+      const doctor = response.data.find(
+        (item) =>
+          item.userId?._id?.toString() === userId?.toString() ||
+          item.userId?.toString() === userId?.toString()
+      );
+
+      if (!doctor) {
+        throw new Error("Doctor profile not found");
+      }
+
+      setDoctorId(doctor._id);
+    } catch (error) {
+      console.error("Failed to load doctor:", error);
+
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to load doctor profile"
+      );
+
+      setLoading(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // LOAD DOCTOR QUEUE
+  // --------------------------------------------------
+
+  const loadAppointments = async (id) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await API.get(`/queue/doctor/${id}`);
+
+      setAppointments(response.data.queue || []);
+    } catch (error) {
+      console.error("Failed to load appointments:", error);
+
+      setError(
+        error.response?.data?.message ||
+          "Failed to load appointments"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --------------------------------------------------
+  // INITIAL LOAD
+  // --------------------------------------------------
+
+  useEffect(() => {
+    loadDoctor();
+  }, []);
+
+  useEffect(() => {
+    if (doctorId) {
+      loadAppointments(doctorId);
+    }
+  }, [doctorId]);
+
+  // --------------------------------------------------
+  // FILTER + SEARCH
+  // --------------------------------------------------
+
+  const filteredAppointments = appointments.filter(
+    (appointment) => {
+      const patientName =
+        appointment.patient?.name ||
+        appointment.patient ||
+        "";
+
+      const status = appointment.status || "";
+
+      const matchesSearch = patientName
         .toLowerCase()
         .includes(search.toLowerCase());
 
-    return matchesFilter && matchesSearch;
-  });
+      let matchesFilter = true;
 
+      if (filter === "Waiting") {
+        matchesFilter = status === "WAITING";
+      }
+
+      if (filter === "Completed") {
+        matchesFilter = status === "COMPLETED";
+      }
+
+      if (filter === "Upcoming") {
+        matchesFilter =
+          status !== "WAITING" &&
+          status !== "COMPLETED";
+      }
+
+      return matchesSearch && matchesFilter;
+    }
+  );
+
+  // --------------------------------------------------
+  // STATISTICS
+  // --------------------------------------------------
+
+  const totalAppointments = appointments.length;
+
+  const waitingAppointments = appointments.filter(
+    (appointment) =>
+      appointment.status === "WAITING"
+  ).length;
+
+  const completedAppointments = appointments.filter(
+    (appointment) =>
+      appointment.status === "COMPLETED"
+  ).length;
+
+  const upcomingAppointments = appointments.filter(
+    (appointment) =>
+      appointment.status !== "WAITING" &&
+      appointment.status !== "COMPLETED"
+  ).length;
+
+  // --------------------------------------------------
+  // START CONSULTATION
+  // --------------------------------------------------
 
   const startConsultation = (appointment) => {
+    if (!appointment) return;
 
     navigate("/doctor/consultation", {
       state: {
-        appointment: appointment
+        appointment: {
+          ...appointment,
+
+          // Keep the real appointment ID
+          _id:
+            appointment.appointment?._id ||
+            appointment.appointmentId ||
+            appointment._id,
+
+          // Make patient information easier for Consultation.jsx
+          patient:
+            appointment.patient?.name ||
+            appointment.patient ||
+            "Patient",
+
+          // M2 appointment uses "reason"
+          symptoms:
+            appointment.symptoms ||
+            appointment.appointment?.reason ||
+            ""
+        }
       }
     });
-
   };
 
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
+
+  if (loading) {
+    return (
+      <div className="doctor-page">
+        <div className="inner-page-header">
+          <div>
+            <p className="eyebrow">
+              DOCTOR PORTAL • SCHEDULE
+            </p>
+
+            <h1>Appointments</h1>
+
+            <p>
+              Loading your appointments...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
 
   return (
-
     <div className="doctor-page">
 
       {/* HEADER */}
@@ -97,6 +253,15 @@ const fetchAppointments = async () => {
       </div>
 
 
+      {/* ERROR */}
+
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+
       {/* SUMMARY */}
 
       <div className="appointment-summary">
@@ -109,7 +274,9 @@ const fetchAppointments = async () => {
 
           <div>
             <small>Total</small>
-            <strong>12</strong>
+            <strong>
+              {totalAppointments}
+            </strong>
           </div>
 
         </div>
@@ -123,7 +290,9 @@ const fetchAppointments = async () => {
 
           <div>
             <small>Waiting</small>
-            <strong>3</strong>
+            <strong>
+              {waitingAppointments}
+            </strong>
           </div>
 
         </div>
@@ -137,7 +306,9 @@ const fetchAppointments = async () => {
 
           <div>
             <small>Completed</small>
-            <strong>7</strong>
+            <strong>
+              {completedAppointments}
+            </strong>
           </div>
 
         </div>
@@ -146,12 +317,14 @@ const fetchAppointments = async () => {
         <div className="summary-box">
 
           <span className="summary-icon purple">
-            🕐
+            📌
           </span>
 
           <div>
             <small>Upcoming</small>
-            <strong>2</strong>
+            <strong>
+              {upcomingAppointments}
+            </strong>
           </div>
 
         </div>
@@ -159,341 +332,181 @@ const fetchAppointments = async () => {
       </div>
 
 
-      {/* MAIN CARD */}
-
-      <div className="appointments-page-card">
-
-
-        {/* SEARCH + FILTER */}
-
-        <div className="appointment-toolbar">
-
-          <div className="large-search">
-
-            <span>🔍</span>
-
-            <input
-              type="text"
-              placeholder="Search patient..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-
-          </div>
-
-
-          <div className="filter-buttons">
-
-            {["All", "Waiting", "Upcoming", "Completed"].map(
-              (item) => (
-
-                <button
-                  key={item}
-                  className={
-                    filter === item
-                      ? "filter-btn active"
-                      : "filter-btn"
-                  }
-                  onClick={() => setFilter(item)}
-                >
-                  {item}
-                </button>
-
-              )
-            )}
-
-          </div>
-
-        </div>
-
-
-        {/* APPOINTMENTS */}
-
-        <div className="appointment-cards">
-
-          {filteredAppointments.map((appointment) => (
-
-            <div
-              className="appointment-full-card"
-              key={appointment.id}
-            >
-
-              <div className="appointment-card-top">
-
-                <div className="appointment-person">
-
-                  <div className="appointment-avatar">
-                    {appointment.patient.charAt(0)}
-                  </div>
-
-                  <div>
-
-                    <h2>
-                      {appointment.patient}
-                    </h2>
-
-                    <p>
-                      Patient ID: MQ-00{appointment.id}
-                    </p>
-
-                  </div>
-
-                </div>
-
-
-                <span
-                  className={`appointment-status ${appointment.status.toLowerCase()}`}
-                >
-                  {appointment.status}
-                </span>
-
-              </div>
-
-
-              <div className="appointment-details">
-
-                <div>
-
-                  <span>AGE</span>
-
-                  <strong>
-                    {appointment.age} years
-                  </strong>
-
-                </div>
-
-
-                <div>
-
-                  <span>GENDER</span>
-
-                  <strong>
-                    {appointment.gender}
-                  </strong>
-
-                </div>
-
-
-                <div>
-
-                  <span>TIME</span>
-
-                  <strong>
-                    🕐 {appointment.time}
-                  </strong>
-
-                </div>
-
-
-                <div>
-
-                  <span>TYPE</span>
-
-                  <strong>
-                    🩺 {appointment.type}
-                  </strong>
-
-                </div>
-
-              </div>
-
-
-              <div className="appointment-card-bottom">
-
-                <div className="symptom-preview">
-
-                  <span>
-                    PATIENT COMPLAINT
-                  </span>
-
-                  <p>
-                    {appointment.symptoms}
-                  </p>
-
-                </div>
-
-
-                <div className="card-action-buttons">
-
-                  <button
-                    className="outline-btn large"
-                    onClick={() =>
-                      setSelectedAppointment(appointment)
-                    }
-                  >
-                    View Details
-                  </button>
-
-
-                  {appointment.status !== "Completed" && (
-
-                    <button
-                      className="primary-btn"
-                      onClick={() =>
-                        startConsultation(appointment)
-                      }
-                    >
-                      🩺 Start Consultation
-                    </button>
-
-                  )}
-
-                </div>
-
-              </div>
-
-            </div>
-
-          ))}
-
-
-          {filteredAppointments.length === 0 && (
-
-            <div className="empty-page">
-
-              <div>
-                🔍
-              </div>
-
-              <h2>
-                No appointments found
-              </h2>
-
-              <p>
-                Try changing your search or filter.
-              </p>
-
-            </div>
-
-          )}
-
-        </div>
-
-      </div>
-
-
-      {/* DETAILS MODAL */}
-
-      {selectedAppointment && (
-
-        <div
-          className="modal-background"
-          onClick={() => setSelectedAppointment(null)}
+      {/* SEARCH + FILTER */}
+
+      <div className="appointment-controls">
+
+        <input
+          type="text"
+          placeholder="Search patient..."
+          value={search}
+          onChange={(e) =>
+            setSearch(e.target.value)
+          }
+        />
+
+        <select
+          value={filter}
+          onChange={(e) =>
+            setFilter(e.target.value)
+          }
         >
 
-          <div
-            className="appointment-modal"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <option value="All">
+            All
+          </option>
 
-            <button
-              className="popup-close"
-              onClick={() => setSelectedAppointment(null)}
-            >
-              ×
-            </button>
+          <option value="Waiting">
+            Waiting
+          </option>
+
+          <option value="Upcoming">
+            Upcoming
+          </option>
+
+          <option value="Completed">
+            Completed
+          </option>
+
+        </select>
+
+      </div>
 
 
-            <div className="modal-title">
+      {/* APPOINTMENTS */}
 
-              <div className="popup-avatar">
-                {selectedAppointment.patient.charAt(0)}
-              </div>
+      <div className="appointments-list">
 
-              <div>
+        {filteredAppointments.length === 0 ? (
 
-                <h2>
-                  {selectedAppointment.patient}
-                </h2>
+          <div className="no-patient-card">
 
-                <p>
-                  Appointment Details
-                </p>
-
-              </div>
-
+            <div>
+              📅
             </div>
 
+            <div>
 
-            <div className="modal-details-grid">
-
-              <div>
-                <span>AGE</span>
-                <strong>
-                  {selectedAppointment.age} years
-                </strong>
-              </div>
-
-              <div>
-                <span>GENDER</span>
-                <strong>
-                  {selectedAppointment.gender}
-                </strong>
-              </div>
-
-              <div>
-                <span>TIME</span>
-                <strong>
-                  {selectedAppointment.time}
-                </strong>
-              </div>
-
-              <div>
-                <span>STATUS</span>
-                <strong>
-                  {selectedAppointment.status}
-                </strong>
-              </div>
-
-            </div>
-
-
-            <div className="modal-complaint">
-
-              <span>
-                CURRENT COMPLAINT
-              </span>
+              <h3>
+                No appointments found
+              </h3>
 
               <p>
-                {selectedAppointment.symptoms}
+                There are no appointments matching your search or filter.
               </p>
-
-            </div>
-
-
-            <div className="popup-buttons">
-
-              <button
-                className="popup-cancel"
-                onClick={() => setSelectedAppointment(null)}
-              >
-                Close
-              </button>
-
-
-              {selectedAppointment.status !== "Completed" && (
-
-                <button
-                  className="popup-start"
-                  onClick={() =>
-                    startConsultation(selectedAppointment)
-                  }
-                >
-                  Start Consultation
-                </button>
-
-              )}
 
             </div>
 
           </div>
 
-        </div>
+        ) : (
 
-      )}
+          filteredAppointments.map(
+            (appointment) => {
+
+              const patientName =
+                appointment.patient?.name ||
+                appointment.patient ||
+                "Unknown Patient";
+
+              const appointmentData =
+                appointment.appointment ||
+                {};
+
+              const appointmentTime =
+                appointmentData.appointmentTime ||
+                appointment.appointmentTime ||
+                "Time not available";
+
+              const reason =
+                appointmentData.reason ||
+                appointment.reason ||
+                "General Consultation";
+
+              const status =
+                appointment.status ||
+                "UNKNOWN";
+
+              return (
+                <div
+                  className="appointment-card"
+                  key={appointment._id}
+                >
+
+                  <div className="appointment-patient">
+
+                    <div className="patient-avatar">
+                      {patientName.charAt(0)}
+                    </div>
+
+                    <div>
+
+                      <h3>
+                        {patientName}
+                      </h3>
+
+                      <p>
+                        {reason}
+                      </p>
+
+                    </div>
+
+                  </div>
+
+
+                  <div className="appointment-time">
+
+                    <span>
+                      🕐
+                    </span>
+
+                    <div>
+
+                      <small>
+                        Appointment
+                      </small>
+
+                      <strong>
+                        {appointmentTime}
+                      </strong>
+
+                    </div>
+
+                  </div>
+
+
+                  <div className="appointment-status">
+
+                    <span
+                      className={`status-badge ${status.toLowerCase()}`}
+                    >
+                      {status}
+                    </span>
+
+                  </div>
+
+
+                  <button
+                    className="primary-btn"
+                    onClick={() =>
+                      startConsultation(
+                        appointment
+                      )
+                    }
+                  >
+                    Start Consultation
+                  </button>
+
+                </div>
+              );
+            }
+          )
+
+        )}
+
+      </div>
 
     </div>
-
   );
 }
 
