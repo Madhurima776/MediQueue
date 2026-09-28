@@ -1,66 +1,76 @@
-import { useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-import Dashboard from "./pages/admin/Dashboard";
+import Navbar from "./components/Navbar";
+
+import PatientDashboard from "./pages/patient/Dashboard";
+import PatientDoctors from "./pages/patient/Doctors";
+import BookAppointment from "./pages/patient/BookAppointment";
+import MyAppointments from "./pages/patient/MyAppointments";
+import PatientDepartments from "./pages/patient/Departments";
+
+import AdminDashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
-import Doctors from "./pages/admin/Doctors";
-import Departments from "./pages/admin/Departments";
+import AdminDoctors from "./pages/admin/Doctors";
+import AdminDepartments from "./pages/admin/Departments";
 import Reports from "./pages/admin/Reports";
 
 function App() {
-  const [activePage, setActivePage] = useState("dashboard");
-
-  const renderPage = () => {
-    switch (activePage) {
-      case "dashboard":
-        return <Dashboard />;
-
-      case "users":
-        return <Users />;
-
-      case "doctors":
-        return <Doctors />;
-
-      case "departments":
-        return <Departments />;
-
-      case "reports":
-        return <Reports />;
-
-      default:
-        return <Dashboard />;
-    }
-  };
-
   return (
-    <div>
-      <h1>MediQueue Admin Panel</h1>
+    <BrowserRouter>
+      <div className="app">
+        <Navbar />
 
-      <nav>
-        <button onClick={() => setActivePage("dashboard")}>
-          Dashboard
-        </button>
+        <main className="main">
+          <header className="topbar">
+            <div></div>
 
-        <button onClick={() => setActivePage("users")}>
-          Users
-        </button>
+            <div className="user-area">
+              <span className="notification">🔔</span>
 
-        <button onClick={() => setActivePage("doctors")}>
-          Doctors
-        </button>
+              <div className="user">
+                <div className="user-circle">N</div>
+                <b>User</b>
+                <span>v</span>
+              </div>
+            </div>
+          </header>
 
-        <button onClick={() => setActivePage("departments")}>
-          Departments
-        </button>
+          <Routes>
+            {/* Patient routes */}
+            <Route path="/" element={<PatientDashboard />} />
+            <Route path="/doctors" element={<PatientDoctors />} />
+            <Route path="/book" element={<BookAppointment />} />
+            <Route path="/appointments" element={<MyAppointments />} />
+            <Route
+              path="/departments"
+              element={<PatientDepartments />}
+            />
 
-        <button onClick={() => setActivePage("reports")}>
-          Reports
-        </button>
-      </nav>
-
-      <hr />
-
-      {renderPage()}
-    </div>
+            {/* Admin routes */}
+            <Route
+              path="/admin"
+              element={<AdminDashboard />}
+            />
+            <Route
+              path="/admin/users"
+              element={<Users />}
+            />
+            <Route
+              path="/admin/doctors"
+              element={<AdminDoctors />}
+            />
+            <Route
+              path="/admin/departments"
+              element={<AdminDepartments />}
+            />
+            <Route
+              path="/admin/reports"
+              element={<Reports />}
+            />
+          </Routes>
+        </main>
+      </div>
+    </BrowserRouter>
   );
 }
 
