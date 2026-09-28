@@ -1,13 +1,26 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 
+// Patient pages
 import PatientDashboard from "./pages/patient/Dashboard";
 import PatientDoctors from "./pages/patient/Doctors";
 import BookAppointment from "./pages/patient/BookAppointment";
 import MyAppointments from "./pages/patient/MyAppointments";
 import PatientDepartments from "./pages/patient/Departments";
 
+// Doctor pages
+import DoctorDashboard from "./pages/doctor/Dashboard";
+import DoctorAppointments from "./pages/doctor/Appointments";
+import DoctorPatients from "./pages/doctor/Patients";
+import Consultation from "./pages/doctor/Consultation";
+
+// Admin pages
 import AdminDashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
 import AdminDoctors from "./pages/admin/Doctors";
@@ -40,10 +53,31 @@ function App() {
             <Route path="/" element={<PatientDashboard />} />
             <Route path="/doctors" element={<PatientDoctors />} />
             <Route path="/book" element={<BookAppointment />} />
-            <Route path="/appointments" element={<MyAppointments />} />
+            <Route
+              path="/appointments"
+              element={<MyAppointments />}
+            />
             <Route
               path="/departments"
               element={<PatientDepartments />}
+            />
+
+            {/* Doctor routes */}
+            <Route
+              path="/doctor/dashboard"
+              element={<DoctorDashboard />}
+            />
+            <Route
+              path="/doctor/appointments"
+              element={<DoctorAppointments />}
+            />
+            <Route
+              path="/doctor/patients"
+              element={<DoctorPatients />}
+            />
+            <Route
+              path="/doctor/consultation"
+              element={<Consultation />}
             />
 
             {/* Admin routes */}
