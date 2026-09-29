@@ -1,27 +1,24 @@
-require("dotenv").config();
-
 const http = require("http");
 const { Server } = require("socket.io");
 
 const express = require("express");
 const cors = require("cors");
-
-const connectDB = require("./config/db");
+const dotenv = require("dotenv");
 
 const authRoutes = require("./routes/authRoutes");
+const connectDB = require("./config/db");
 const departmentRoutes = require("./routes/departmentRoutes");
 const doctorRoutes = require("./routes/doctorRoutes");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const queueRoutes = require("./routes/queueRoutes");
 const consultationRoutes = require("./routes/consultationRoutes");
 
-// M5 - Receptionist & Check-in
-const checkinRoutes = require("./routes/checkinRoutes");
+dotenv.config();
+
+connectDB();
 
 const app = express();
 const httpServer = http.createServer(app);
-
-connectDB();
 
 const io = new Server(httpServer, {
   cors: {
@@ -53,10 +50,6 @@ app.use("/api/appointments", appointmentRoutes);
 app.use("/api/queue", queueRoutes);
 app.use("/api/consultations", consultationRoutes);
 
-// M5 - Receptionist & Check-in
-app.use("/api/checkin", checkinRoutes);
-
-// Test route
 app.get("/", (req, res) => {
   res.json({
     message: "MediQueue Server is running successfully!"
