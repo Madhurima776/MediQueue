@@ -1,27 +1,18 @@
+import { useEffect, useState } from "react";
+
 function Doctors() {
-  const doctors = [
-    {
-      id: 1,
-      name: "Dr. Ravi Kumar",
-      department: "Cardiology",
-      specialization: "Cardiologist",
-      status: "Available",
-    },
-    {
-      id: 2,
-      name: "Dr. Priya Sharma",
-      department: "Neurology",
-      specialization: "Neurologist",
-      status: "Available",
-    },
-    {
-      id: 3,
-      name: "Dr. Anil Reddy",
-      department: "Orthopedics",
-      specialization: "Orthopedic Specialist",
-      status: "Unavailable",
-    },
-  ];
+  const [doctors, setDoctors] = useState([]);
+
+  useEffect(() => {
+    fetch("http://localhost:5000/api/doctors")
+      .then((response) => response.json())
+      .then((data) => {
+        setDoctors(data);
+      })
+      .catch((error) => {
+        console.error("Error fetching doctors:", error);
+      });
+  }, []);
 
   return (
     <div>
@@ -31,19 +22,21 @@ function Doctors() {
         <thead>
           <tr>
             <th>Name</th>
+            <th>Email</th>
             <th>Department</th>
-            <th>Specialization</th>
-            <th>Status</th>
+            <th>Availability</th>
           </tr>
         </thead>
 
         <tbody>
           {doctors.map((doctor) => (
-            <tr key={doctor.id}>
-              <td>{doctor.name}</td>
-              <td>{doctor.department}</td>
-              <td>{doctor.specialization}</td>
-              <td>{doctor.status}</td>
+            <tr key={doctor._id}>
+              <td>{doctor.userId?.name || "N/A"}</td>
+              <td>{doctor.userId?.email || "N/A"}</td>
+              <td>{doctor.departmentId?.name || "N/A"}</td>
+              <td>
+                {doctor.isAvailable ? "Available" : "Unavailable"}
+              </td>
             </tr>
           ))}
         </tbody>
