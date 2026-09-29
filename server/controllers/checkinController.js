@@ -11,12 +11,14 @@ const checkInPatient = async (req, res) => {
       method
     } = req.body;
 
+    // Check required fields
     if (!appointmentId || !patientId || !checkedInBy) {
       return res.status(400).json({
         message: "Appointment ID, Patient ID and Receptionist ID are required"
       });
     }
 
+    // Find appointment
     const appointment = await Appointment.findById(appointmentId);
 
     if (!appointment) {
@@ -25,12 +27,14 @@ const checkInPatient = async (req, res) => {
       });
     }
 
+    // Check patient
     if (appointment.patientId.toString() !== patientId) {
       return res.status(400).json({
         message: "Patient does not belong to this appointment"
       });
     }
 
+    // Check if already checked in
     const existingCheckIn = await CheckIn.findOne({
       appointmentId,
       status: "checked-in"
@@ -42,6 +46,7 @@ const checkInPatient = async (req, res) => {
       });
     }
 
+    // Create check-in
     const checkIn = await CheckIn.create({
       appointmentId,
       patientId,
@@ -49,6 +54,7 @@ const checkInPatient = async (req, res) => {
       method: method || "reception"
     });
 
+    // Update appointment status
     appointment.status = "checked-in";
     await appointment.save();
 
@@ -91,48 +97,7 @@ const getCheckIn = async (req, res) => {
 };
 
 
-// Get today's appointments
-const getTodayAppointments = async (req, res) => {
-  try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const appointments = await Appointment.find({
-      appointmentDate: {
-        $gte: startOfDay,
-        $lte: endOfDay
-      },
-      status: {
-        $nin: ["cancelled"]
-      }
-    })
-      .populate("patientId", "name email phone")
-      .populate({
-        path: "doctorId",
-        populate: {
-          path: "userId",
-          select: "name"
-        }
-      })
-      .populate("departmentId")
-      .sort({ appointmentTime: 1 });
-
-    res.json(appointments);
-
-  } catch (error) {
-    res.status(500).json({
-      message: "Failed to get today's appointments",
-      error: error.message
-    });
-  }
-};
-
-
 module.exports = {
   checkInPatient,
-  getCheckIn,
-  getTodayAppointments
+  getCheckIn
 };

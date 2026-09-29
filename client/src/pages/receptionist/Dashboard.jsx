@@ -1,33 +1,29 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 function Dashboard() {
-  const [appointments, setAppointments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    fetchAppointments();
-  }, []);
-
-  const fetchAppointments = async () => {
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/checkin/appointments"
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setAppointments(data);
-      } else {
-        setMessage(data.message || "Failed to load appointments.");
-      }
-    } catch (error) {
-      setMessage("Cannot connect to server.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const appointments = [
+    {
+      id: "A001",
+      patientName: "Rahul",
+      doctorName: "Dr. Priya",
+      time: "10:00 AM",
+      status: "Booked",
+    },
+    {
+      id: "A002",
+      patientName: "Sneha",
+      doctorName: "Dr. Kumar",
+      time: "10:30 AM",
+      status: "Confirmed",
+    },
+    {
+      id: "A003",
+      patientName: "Arjun",
+      doctorName: "Dr. Priya",
+      time: "11:00 AM",
+      status: "Booked",
+    },
+  ];
 
   return (
     <div style={{ padding: "30px" }}>
@@ -35,22 +31,13 @@ function Dashboard() {
 
       <h2>Today's Appointments</h2>
 
-      {loading && <p>Loading appointments...</p>}
-
-      {message && <p>{message}</p>}
-
-      {!loading && !message && appointments.length === 0 && (
-        <p>No appointments available today.</p>
-      )}
-
-      {!loading && appointments.length > 0 && (
+      {appointments.length === 0 ? (
+        <p>No appointments available.</p>
+      ) : (
         <table
           border="1"
           cellPadding="10"
-          style={{
-            borderCollapse: "collapse",
-            marginTop: "20px",
-          }}
+          style={{ borderCollapse: "collapse", marginTop: "20px" }}
         >
           <thead>
             <tr>
@@ -64,21 +51,11 @@ function Dashboard() {
 
           <tbody>
             {appointments.map((appointment) => (
-              <tr key={appointment._id}>
-                <td>{appointment._id}</td>
-                <td>
-                  {appointment.patientId
-                    ? appointment.patientId.name
-                    : "Unknown"}
-                </td>
-                <td>
-  {appointment.doctorId && appointment.doctorId.userId
-    ? appointment.doctorId.userId.name
-    : "Unknown"}
-</td>not working
-
-    
-                <td>{appointment.appointmentTime}</td>
+              <tr key={appointment.id}>
+                <td>{appointment.id}</td>
+                <td>{appointment.patientName}</td>
+                <td>{appointment.doctorName}</td>
+                <td>{appointment.time}</td>
                 <td>{appointment.status}</td>
               </tr>
             ))}
